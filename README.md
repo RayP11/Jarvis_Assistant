@@ -14,5 +14,5 @@ An AI voice assistant designed for desktop - created with OpenAI, SpotifyAPI, We
 - Setting timers
 - Alarm clock
 
-#Why make Jarvis?
+# Why make Jarvis?
 Utilizing libraries to make an AI assistant that's tailored to my own experience has boosted my productivity in work, school, and life.
