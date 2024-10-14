@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS Assistant</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --background-color: #1E1E1E;
+            --text-color: #EAEAEA;
+            --button-bg: #008bee;
+            --button-bg-hover: #004bb3;
+            --time-color: #03DAC5;
+            --weather-color: #4ebdec;
+        }
+
+        .light-mode {
+            --background-color: #FFFFFF;
+            --text-color: #000000;
+            --button-bg: #3ddcf0;
+            --button-bg-hover: #0024ee;
+            --time-color: #004bee;
+            --weather-color: #1E1E1E;
+        }
+
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+            overflow: auto;
+            position: relative;
+        }
+
+        .menu-icon {
+            cursor: pointer;
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .line {
+            width: 30px;
+            height: 4px;
+            background-color: #EAEAEA;
+            margin: 3px 0;
+            transition: all 0.3s ease;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            left: 0;
+            top: 50px;
+            width: 200px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            z-index: 1;
+            padding: 10px;
+        }
+
+        .dropdown-content button {
+            width: 100%;
+            padding: 10px;
+            background-color: transparent;
+            border: none;
+            color: var(--text-color);
+            text-align: left;
+            cursor: pointer;
+            margin-bottom: 5px;
+        }
+
+        .dropdown-content button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 55px;
+            color: var(--weather-color);
+        }
+
+        #responseContainer {
+            display: none;
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 12px;
+            max-width: 600px;
+            max-height: 300px;
+            overflow-y: auto;
+            text-align: left;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            font-size: 18px;
+        }
+
+
+        #historyContent {
+            margin-top: 10px; /* Space between title and content */
+        }
+
+        #dateDisplay, #timeDisplay, #weatherDisplay {
+            position: absolute;
+            right: 20px;
+            color: var(--time-color);
+        }
+
+        #dateDisplay {
+            top: 10px;
+            font-size: 40px;
+        }
+
+        #timeDisplay {
+            top: 65px;
+            font-size: 40px;
+        }
+
+        #weatherDisplay {
+            top: 120px;
+            font-size: 35px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: var(--button-bg);
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            color: #FFFFFF;
+            transition: background-color 0.3s, transform 0.2s;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: var(--button-bg-hover);
+            transform: scale(1.05);
+        }
+
+        #generatedImage {
+            display: none;
+            max-width: 70%;
+            height: 70%;
+            margin-top: 20px;
+        }
+
+        #closeImage {
+            display: none;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>JARVIS Assistant</h1>
+    <div id="responseContainer">Welcome! Your responses will appear here.</div>
+    <div id="responseHistoryContainer">
+        <h2>Response History</h2>
+        <div id="historyContent"></div>
+    </div>
+    <img id="generatedImage" src="" alt="Generated Image" />
+    <button id="closeImage">X</button>
+
+    <div id="menu" class="menu-icon" onclick="toggleMenu(event)">
+        <div class="line"></div>
+        <div class="line"></div>
+        <div class="line"></div>
+    </div>
+    
+    <div id="dropdown" class="dropdown-content">
+        <button onclick="showResponses()">Show Assistant</button>
+        <button onclick="showResponseHistory()">Show Response History</button>
+        <button onclick="showInstructions()">Show Instructions</button>
+        <button id="modeToggle">Switch to Light Mode</button>
+        <button onclick="location.reload()">Refresh</button>
+    </div>
+    
+    <div id="dateDisplay"></div>
+    <div id="timeDisplay"></div>
+    <div id="weatherDisplay">Loading weather...</div>
+
+    <script>
+        let responses = []; // Initialize the responses array
+
+        document.getElementById('modeToggle').addEventListener('click', () => {
+            const body = document.body;
+            body.classList.toggle('light-mode');
+            const isLightMode = body.classList.contains('light-mode');
+            document.getElementById('modeToggle').textContent = isLightMode ? 'Switch to Dark Mode' : 'Switch to Light Mode';
+        });
+
+        function updateTime() {
+            const now = new Date();
+            const dateString = now.toLocaleDateString();
+            const timeString = now.toLocaleTimeString();
+
+            document.getElementById('dateDisplay').textContent = dateString;
+            document.getElementById('timeDisplay').textContent = timeString;
+        }
+
+        function fetchWeather() {
+            fetch('/api/weather')
+                .then(response => response.json())
+                .then(data => {
+                    const weatherDisplay = document.getElementById('weatherDisplay');
+                    if (data && data.weather && data.main) {
+                        weatherDisplay.textContent = `${data.weather.emoji} ${data.weather.description}, 🌡️ ${data.main.temp}°F`;
+                    } else {
+                        weatherDisplay.textContent = "Weather data not available.";
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('weatherDisplay').textContent = "Error fetching weather.";
+                });
+        }
+
+        document.getElementById('closeImage').addEventListener('click', () => {
+            const generatedImage = document.getElementById('generatedImage');
+            generatedImage.src = '';
+            generatedImage.style.display = 'none';
+            document.getElementById('closeImage').style.display = 'none';
+            fetchResponse();
+        });
+
+        function updateResponseHistory(latestResponse) {
+            responses.push(latestResponse);
+            const historyContent = document.getElementById('historyContent');
+            const responseDiv = document.createElement('div');
+            responseDiv.textContent = latestResponse.text; // Add the latest response to the history
+            historyContent.appendChild(responseDiv);
+        }
+
+        // Adjust the fetchResponse function to call updateResponseHistory
+        function fetchResponse() {
+            fetch('/api/responses')
+                .then(response => response.json())
+                .then(data => {
+                    const responseContainer = document.getElementById('responseContainer');
+                    const generatedImage = document.getElementById('generatedImage');
+                    const closeImageButton = document.getElementById('closeImage');
+
+                    if (data.length > 0) {
+                        const latestResponse = data[data.length - 1];
+                        responseContainer.innerHTML = latestResponse.text;
+                        updateResponseHistory(latestResponse); // Update history with the latest response
+
+                        if (latestResponse.imageUrl) {
+                            generatedImage.src = latestResponse.imageUrl;
+                            generatedImage.style.display = 'block';
+                            closeImageButton.style.display = 'inline';
+                        } else {
+                            generatedImage.style.display = 'none';
+                            closeImageButton.style.display = 'none';
+                        }
+                    }
+                });
+        }
+
+
+
+        function toggleMenu(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('dropdown');
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        }
+
+        function hideMenu() {
+            document.getElementById('dropdown').style.display = 'none';
+            document.getElementById('responseHistoryContainer').style.display = 'none';
+        }
+
+        function showResponses() {
+            document.getElementById('responseContainer').style.display = 'block';
+            document.getElementById('responseHistoryContainer').style.display = 'none';
+            fetchResponse();
+        }
+
+
+        function showInstructions() {
+            // Add your instructions display logic here
+        }
+
+        window.addEventListener('click', hideMenu);
+        setInterval(updateTime, 1000);
+        updateTime();
+        setInterval(fetchWeather, 60000);
+        fetchWeather();
+        setInterval(fetchResponse, 500);
+        showResponses(); // Show the response container by default
+    </script>
+
+</body>
+</html>
+
