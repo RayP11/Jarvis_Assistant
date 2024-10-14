@@ -7,9 +7,9 @@ from openaiAPI import Create_Jarvis,messages
 
 load_dotenv()
 
-email_sender = "jarvis.r11510@gmail.com" 
+email_sender = "jarvis.r11510@gmail.com" #Jarvis's email
 email_password = os.getenv("EMAIL_PASSWORD")
-email_receiver = os.getenv("PHONE_NUMBER")
+email_receiver = os.getenv("PHONE_NUMBER") #personal phone number
 
 def sendText(message):
 
