@@ -145,7 +145,7 @@ def capture_and_analyze(text):
                     ]
                 }
             ],
-            "max_tokens": 300
+            "max_tokens": 4000
         }
 
         # Sending the request to OpenAI API

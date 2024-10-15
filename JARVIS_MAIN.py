@@ -86,28 +86,45 @@ class JarvisState:
     SLEEP = "sleep"
     STOPPED = "stopped"
 
-# Initialize state and sleep timer
+
+# Initialize state, sleep timer, and face recognition timer
 state = JarvisState.ACTIVE
 sleep_timer = None
-
-
+face_recognition_timer = None
 
 def activate_sleep_mode():
-    global state, sleep_timer
+    global state, sleep_timer, face_recognition_timer
     if sleep_timer:
         sleep_timer.cancel()  # Cancel any existing timer
     sleep_timer = threading.Timer(300.0, set_sleep_mode)  # Set sleep mode after 300 seconds of inactivity
     sleep_timer.start()
+    
+    # Start a timer for facial recognition to activate after 30 minutes (1800 seconds)
+    if face_recognition_timer:
+        face_recognition_timer.cancel()  # Cancel any existing face recognition timer
+    face_recognition_timer = threading.Timer(1800.0, activate_face_recognition)  # Set for 30 minutes
+    face_recognition_timer.start()
 
 def set_sleep_mode():
     global state
     state = JarvisState.SLEEP
+    activate_sleep_mode()
 
 def reset_sleep_timer():
-    global sleep_timer
+    global sleep_timer, face_recognition_timer
     if sleep_timer:
-        sleep_timer.cancel()  # Cancel existing timer
-    activate_sleep_mode()  # Start a new timer
+        sleep_timer.cancel()  # Cancel existing sleep timer
+    if face_recognition_timer:
+        face_recognition_timer.cancel()  # Cancel existing face recognition timer
+    activate_sleep_mode()  # Start both timers again
+
+def activate_face_recognition():
+    """Starts facial recognition after 30 minutes if still in sleep mode."""
+    global state, faceId_run
+    if state == JarvisState.SLEEP and not faceId_run:
+        # Start facial recognition in a separate thread if JARVIS is still in sleep mode
+        threading.Thread(target=find_ray, daemon=True).start()
+        faceId_run = True
 
 def ai_response(text):
     """Get a response from ChatGPT and speak it.""" 
@@ -179,16 +196,17 @@ def find_ray():
             if match[0]:  # If there is a match
                 # Face found
                 findingRay = False  # Stop searching for the face
-                faceId_run = False #ensure face_id is not run multiple times
-                ai_response("ask me about something, any reminders, past conversations, how I'm doing, anything you can help me with. Make it very brief. Make sure it's something we've talked about")  # Prompt ChatGPT response
-                state = JarvisState.ACTIVE  # Change state to ACTIVE
-                time.sleep(.5)
-                reset_sleep_timer()  # Reset the sleep timer
+                faceId_run = False  # Ensure face_id is not run multiple times
+                # Release handle to the webcam
+                video_capture.release()
+                cv2.destroyAllWindows()
                 break  # Exit the loop after finding the face
+        if not findingRay:
+            ai_response("Ask me about something, any reminders, or how I'm doing, or anything you can help me with. Make it very brief.")  # Prompt ChatGPT response
+            state = JarvisState.ACTIVE  # Change state to ACTIVE
+            time.sleep(0.5)
+            reset_sleep_timer()  # Reset the sleep timer
 
-    # Release handle to the webcam
-    video_capture.release()
-    cv2.destroyAllWindows()
 
 
 def chat():
@@ -202,11 +220,6 @@ def chat():
     state = JarvisState.ACTIVE
 
     while state != JarvisState.STOPPED:
-        if state == JarvisState.SLEEP and faceId_run == False:
-            # Start facial recognition in a separate thread while in sleep mode
-            threading.Thread(target=find_ray, daemon=True).start()
-            faceId_run = True
-
         with sr.Microphone() as source:
             r.adjust_for_ambient_noise(source)  # Adjust for ambient noise
             audio_data = listen(source, timeout=5)  # Listen for audio input
