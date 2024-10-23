@@ -54,8 +54,8 @@ def get_weather_data():
         "Rain": "🌧️",
         "Snow": "❄️",
         "Thunderstorm": "⛈️",
-        "Clear": "🌤️",
-        "Overcast": "🌥️",
+        "Clear": "☀️",
+        "Partly cloudy": "🌥️",
     }
 
     # Get emoji based on description
@@ -102,7 +102,7 @@ def activate_sleep_mode():
     # Start a timer for facial recognition to activate after 30 minutes (1800 seconds)
     if face_recognition_timer:
         face_recognition_timer.cancel()  # Cancel any existing face recognition timer
-    face_recognition_timer = threading.Timer(1800.0, activate_face_recognition)  # Set for 30 minutes
+    face_recognition_timer = threading.Timer(60.0, activate_face_recognition)  # Set for 30 minutes
     face_recognition_timer.start()
 
 def set_sleep_mode():
