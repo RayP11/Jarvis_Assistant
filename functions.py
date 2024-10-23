@@ -55,6 +55,8 @@ def playMusic(music):
     """Play specified music on Spotify."""
     try:
         os.system('spotify')
+        response = "Playing " + music + " on Spotify"
+        SpeakText(response)
         time.sleep(1.5)
         music = music.lower()
         if " on spotify" in music:
@@ -68,8 +70,6 @@ def playMusic(music):
             play_playlist(music)
         else:
             play_song(music)
-        response = "Playing " + music + " on Spotify"
-        SpeakText(response)
         return(response)
     except Exception as e:
         print(f"Error playing music: {e}")
