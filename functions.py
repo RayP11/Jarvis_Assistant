@@ -55,9 +55,7 @@ def playMusic(music):
     """Play specified music on Spotify."""
     try:
         os.system('spotify')
-        response = "Playing " + music + " on Spotify"
-        SpeakText(response)
-        time.sleep(1.5)
+        
         music = music.lower()
         if " on spotify" in music:
             music, _ = music.split("on spotify", 1)
@@ -65,6 +63,9 @@ def playMusic(music):
         if "play " in music:
             _, music = music.split("play", 1)
             music = music.strip()
+        response = "Playing " + music + " on Spotify"
+        SpeakText(response)
+        time.sleep(1.5)
         if "playlist" in music:
             music = music.replace("playlist", "").strip()
             play_playlist(music)
