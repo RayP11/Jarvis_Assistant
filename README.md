@@ -16,3 +16,6 @@ An AI voice assistant designed for desktop - created with OpenAI, SpotifyAPI, We
 
 # Why make Jarvis?
 Utilizing libraries to make an AI assistant that's tailored to my own experience has boosted my productivity in work, school, and life.
+
+#How to use
+Instructions on how to implement on personal desktop coming soon
