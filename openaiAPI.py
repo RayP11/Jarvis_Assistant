@@ -3,10 +3,7 @@ from dotenv import load_dotenv
 import os
 import pygame
 import io
-from PIL import Image
 import requests
-from io import BytesIO
-import threading
 import pyautogui
 import tempfile
 import base64

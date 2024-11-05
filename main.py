@@ -1,7 +1,8 @@
 """
 Main module for JARVIS, a voice-activated assistant.
 
-Handles user interactions, processes commands, and manages functionalities like opening applications and providing responses.
+Handles user interactions, processes commands, manages various functionalities like opening applications,
+providing responses, and performing facial recognition to detect the presence of the user.
 """
 
 import threading
@@ -18,8 +19,8 @@ from openaiAPI import (genImage, SpeakText, capture_and_analyze)
 from get_weather import (weather)
 from messages import (sendText)
 from user_commands import (google_open, edge_open, netflix_open, today_weather, spotify_open,
-                           play_music, what_time, stop_commands, play_video, timer_command,
-                           random_song, generate_image, j_sleep, j_night, volume_decrease, volume_increase,
+                           play_music, what_time, play_video, timer_command,
+                           random_song, generate_image, j_sleep, volume_decrease, volume_increase,
                            send_message, look_screen, wake_up, find_match)
 from functions import (playMusic, get_time, play_youtube, timer, volumeDown, volumeUp, handle_schedule_command, start_edge, start_netflix)
 
@@ -29,6 +30,10 @@ responses = []
 
 @app.route('/api/responses', methods=['GET'])
 def get_responses():
+    """
+    Retrieve the latest responses from JARVIS.
+    Responses include both text and an optional image URL.
+    """
     formatted_responses = [
         {"text": response["text"], "imageUrl": response.get("imageUrl")}
         if isinstance(response, dict) else {"text": response, "imageUrl": None}
@@ -38,10 +43,15 @@ def get_responses():
 
 @app.route('/')
 def serve_html():
+    """Serve the HTML file for the main user interface."""
     return send_from_directory('', 'index.html')  # Serve the HTML file
 
 @app.route('/api/weather', methods=['GET'])
 def get_weather_data():
+    """
+    Fetches weather data for a specific location and returns it in JSON format,
+    including weather description, temperature, and a relevant emoji.
+    """
     weather_info = weather("Salisbury")  # Fetch the weather data
     # Example response parsing
     temp_str = weather_info.split("currently ")[1].split(" degrees")[0]
@@ -76,6 +86,9 @@ def get_weather_data():
 
 @app.route('/api/delete_image', methods=['POST'])
 def delete_image():
+    """
+    Clear the image URL from the latest response if one exists.
+    """
     if responses:  # Check if there are any responses
         responses[-1]['imageUrl'] = None  # Clear the image URL from the last response
     return jsonify(success=True)
@@ -93,6 +106,10 @@ sleep_timer = None
 face_recognition_timer = None
 
 def activate_sleep_mode():
+    """
+    Start timers for sleep mode and facial recognition. JARVIS will enter sleep mode after
+    300 seconds of inactivity and activate facial recognition after 10 minutes.
+    """
     global state, sleep_timer, face_recognition_timer
     if sleep_timer:
         sleep_timer.cancel()  # Cancel any existing timer
@@ -102,15 +119,21 @@ def activate_sleep_mode():
     # Start a timer for facial recognition to activate after 30 minutes (1800 seconds)
     if face_recognition_timer:
         face_recognition_timer.cancel()  # Cancel any existing face recognition timer
-    face_recognition_timer = threading.Timer(60.0, activate_face_recognition)  # Set for 30 minutes
+    face_recognition_timer = threading.Timer(600.0, activate_face_recognition)  # Set for 10 minutes
     face_recognition_timer.start()
 
 def set_sleep_mode():
+    """
+    Set JARVIS to sleep mode and reset the timers.
+    """
     global state
     state = JarvisState.SLEEP
     activate_sleep_mode()
 
 def reset_sleep_timer():
+    """
+    Reset both the sleep and face recognition timers.
+    """
     global sleep_timer, face_recognition_timer
     if sleep_timer:
         sleep_timer.cancel()  # Cancel existing sleep timer
@@ -119,7 +142,9 @@ def reset_sleep_timer():
     activate_sleep_mode()  # Start both timers again
 
 def activate_face_recognition():
-    """Starts facial recognition after 30 minutes if still in sleep mode."""
+    """
+    Starts facial recognition if in sleep mode.
+    """
     global state, faceId_run
     if state == JarvisState.SLEEP and not faceId_run:
         # Start facial recognition in a separate thread if JARVIS is still in sleep mode
@@ -127,13 +152,18 @@ def activate_face_recognition():
         faceId_run = True
 
 def ai_response(text):
-    """Get a response from ChatGPT and speak it.""" 
+    """
+    Generate a response and speak it - using the OpenAI API
+    """ 
     messages.append({"role": "user", "content": text})
     response = Create_Jarvis(messages)
     responses.append(response)  # Append the response to the list
     SpeakText(response)
 
 def generate_image_response(text):
+    """
+    Generate an image based on user input and return the response with the image URL.
+    """
     choices = [
         "Generating image for you ... please wait", 
         "You got it ... please wait a moment", 
@@ -156,7 +186,7 @@ def generate_image_response(text):
         "imageUrl": image_url
     }
 
-# Load your known face image and get its encoding
+# Load known face image and get its encoding
 known_image = face_recognition.load_image_file("C:\\Users\\Raypo\\OneDrive\\Pictures\\Camera Roll\\my_face.jpg")
 known_face_encoding = face_recognition.face_encodings(known_image)[0]  # Get the encoding
 
@@ -164,7 +194,9 @@ known_face_encoding = face_recognition.face_encodings(known_image)[0]  # Get the
 faceId_run = False
 
 def find_ray():
-    """Facial recognition to identify if I'm present."""
+    """
+    Facial recognition to identify the if the user is detected, and give a response if detected.
+    """
     global findingRay, state, faceId_run  # Include state to modify it
     findingRay = True  # Initialize findingRay
 
@@ -207,13 +239,10 @@ def find_ray():
             time.sleep(0.5)
             reset_sleep_timer()  # Reset the sleep timer
 
-
-
 def chat():
     """
-    handles the microphone input and all of the user commands that Jarvis can take in.
-    Checks through each list of possible commands to determine what the user wants Jarvis to do
-    If no commands are found - a standard chatGPT response is given
+    Handles microphone input and all user commands for JARVIS.
+    Processes recognized text to determine the appropriate command or response.
     """
     global state, faceId_run
     wake_word = 'jarvis'
@@ -258,7 +287,7 @@ def chat():
                         elif find_match(generate_image, text):
                             response = generate_image_response(text)
                             if response:
-                                responses.append(response)  # Append the entire response object
+                                responses.append(response) 
                                 SpeakText("I've provided your image here")
                         elif find_match(look_screen, text):
                             response = capture_and_analyze(text)
@@ -304,7 +333,9 @@ def chat():
                     print(f"Error with the recognition service: {e}")  # Print error for debugging
 
 def main():
-    """Main function to start the user interface, facial recognition, and chat functions."""
+    """
+    Main function to start the user interface, facial recognition, and chat functions.
+    """
     # Start the Flask app in a separate thread
     threading.Thread(target=app.run, kwargs={'host': '0.0.0.0', 'port': 8000, 'debug': False}, daemon=True).start()
     
