@@ -108,9 +108,6 @@
         }
 
 
-        #historyContent {
-            margin-top: 10px; /* Space between title and content */
-        }
 
         #dateDisplay, #timeDisplay, #weatherDisplay {
             position: absolute;
@@ -167,9 +164,6 @@
 
     <h1>JARVIS Assistant</h1>
     <div id="responseContainer">Welcome! Your responses will appear here.</div>
-    <div id="responseHistoryContainer">
-        <h2>Response History</h2>
-        <div id="historyContent"></div>
     </div>
     <img id="generatedImage" src="" alt="Generated Image" />
     <button id="closeImage">X</button>
@@ -181,9 +175,6 @@
     </div>
     
     <div id="dropdown" class="dropdown-content">
-        <button onclick="showResponses()">Show Assistant</button>
-        <button onclick="showResponseHistory()">Show Response History</button>
-        <button onclick="showInstructions()">Show Instructions</button>
         <button id="modeToggle">Switch to Light Mode</button>
         <button onclick="location.reload()">Refresh</button>
     </div>
