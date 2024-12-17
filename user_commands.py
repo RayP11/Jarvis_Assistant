@@ -97,6 +97,10 @@ wake_up = [
     "wake me up at", "set an alarm for"
 ]
 
+send_soph = [
+    "send a text to sophie at", "message sophie at", "message to sophie at", "text sophie at"
+]
+
 def find_match(command_list, text):
     """
     Finds if any of the commands in the list match the given text.

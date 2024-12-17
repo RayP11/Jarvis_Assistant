@@ -21,7 +21,7 @@ sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
     client_id=client_id,
     client_secret=client_secret,
     redirect_uri=redirect_uri,
-    scope='user-read-playback-state user-modify-playback-state'
+    scope='user-read-playback-state user-modify-playback-state playlist-read-private'
 ))
 
 def play_song(track_name, retries = 3):
@@ -102,4 +102,5 @@ def play_playlist(playlist_name, retries = 3):
             print(f"Retrying... ({retries} retries left)")
             play_playlist(playlist_name, retries - 1)
 
-
+if __name__ == "__main__":
+    play_playlist("iron man")

@@ -11,6 +11,7 @@ import time
 import speech_recognition as sr
 import face_recognition
 import cv2
+import datetime
 from flask import Flask, jsonify, send_from_directory
 from openaiAPI import Create_Jarvis, messages
 import webbrowser
@@ -21,8 +22,8 @@ from messages import (sendText)
 from user_commands import (google_open, edge_open, netflix_open, today_weather, spotify_open,
                            play_music, what_time, play_video, timer_command,
                            random_song, generate_image, j_sleep, volume_decrease, volume_increase,
-                           send_message, look_screen, wake_up, find_match)
-from functions import (playMusic, get_time, play_youtube, timer, volumeDown, volumeUp, handle_schedule_command, start_edge, start_netflix)
+                           send_message, look_screen, wake_up, send_soph, find_match)
+from functions import (playMusic, get_time, play_youtube, timer, volumeDown, volumeUp, handle_schedule_command, scheduleText, handle_schedule_text, start_edge, start_netflix)
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -61,6 +62,7 @@ def get_weather_data():
     emoji_map = {
         "Sunny": "☀️",
         "Cloudy": "☁️",
+        "Light rain": "🌧️",
         "Rain": "🌧️",
         "Snow": "❄️",
         "Thunderstorm": "⛈️",
@@ -235,8 +237,8 @@ def find_ray():
                 break  # Exit the loop after finding the face
         if not findingRay:
             ai_response("Ask me about something, any reminders, or how I'm doing, or anything you can help me with. Make it very brief.")  # Prompt ChatGPT response
-            state = JarvisState.ACTIVE  # Change state to ACTIVE
             time.sleep(0.5)
+            state = JarvisState.ACTIVE
             reset_sleep_timer()  # Reset the sleep timer
 
 def chat():
@@ -280,9 +282,7 @@ def chat():
                             response = playMusic(text)
                             responses.append(response)
                         elif find_match(random_song, text):
-                            choices = ["Blinding Lights", "Goosbumps", "back in black acdc", "Do I wanna know"]
-                            song = random.choice(choices)
-                            response = playMusic(song)
+                            response = playMusic("iron man playlist")
                             responses.append(response)
                         elif find_match(generate_image, text):
                             response = generate_image_response(text)
@@ -297,6 +297,10 @@ def chat():
                             if 'jarvis' in text:
                                 text = text.replace("jarvis", '')
                             handle_schedule_command(text)
+                        elif find_match(send_soph, text):
+                            if 'jarvis' in text:
+                                text = text.replace("jarvis", '')
+                            handle_schedule_text(text)
                         elif find_match(edge_open, text):
                             response = "Opening Microsoft Edge for you"
                             responses.append(response)
