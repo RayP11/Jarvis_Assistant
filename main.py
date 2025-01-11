@@ -11,18 +11,16 @@ import time
 import speech_recognition as sr
 import face_recognition
 import cv2
-import datetime
-from flask import Flask, jsonify, send_from_directory
-from openaiAPI import Create_Jarvis, messages
+from flask import (Flask, jsonify, send_from_directory)
 import webbrowser
 from recognize_speech import (listen, r)
-from openaiAPI import (genImage, SpeakText, capture_and_analyze)
+from openaiAPI import (Create_Jarvis, messages, genImage, SpeakText, capture_and_analyze, camera_response)
 from get_weather import (weather)
 from messages import (sendText)
 from user_commands import (google_open, edge_open, netflix_open, today_weather, spotify_open,
                            play_music, what_time, play_video, timer_command,
                            random_song, generate_image, j_sleep, volume_decrease, volume_increase,
-                           send_message, look_screen, wake_up, send_soph, find_match)
+                           send_message, wake_up, send_soph, find_match)
 from functions import (playMusic, get_time, play_youtube, timer, volumeDown, volumeUp, handle_schedule_command, scheduleText, handle_schedule_text, start_edge, start_netflix)
 
 # Initialize Flask app
@@ -101,6 +99,13 @@ class JarvisState:
     SLEEP = "sleep"
     STOPPED = "stopped"
 
+class JarvisMode:
+    HARDWARE = "hardware"
+    SOFTWARE = "software"
+    DEFAULT = "default"
+
+#initialize mode
+mode = JarvisMode.DEFAULT
 
 # Initialize state, sleep timer, and face recognition timer
 state = JarvisState.ACTIVE
@@ -160,6 +165,17 @@ def ai_response(text):
     messages.append({"role": "user", "content": text})
     response = Create_Jarvis(messages)
     responses.append(response)  # Append the response to the list
+    SpeakText(response)
+
+def screen_respose(text):
+    messages.append({"role": "user", "content": text})
+    response = capture_and_analyze(text)
+    responses.append(response)
+    SpeakText(response)
+
+def vision_response(text):
+    response = camera_response(text)
+    responses.append(response)
     SpeakText(response)
 
 def generate_image_response(text):
@@ -241,14 +257,19 @@ def find_ray():
             state = JarvisState.ACTIVE
             reset_sleep_timer()  # Reset the sleep timer
 
+
+
 def chat():
     """
     Handles microphone input and all user commands for JARVIS.
     Processes recognized text to determine the appropriate command or response.
     """
-    global state, faceId_run
+    global state, faceId_run, mode
     wake_word = 'jarvis'
     state = JarvisState.ACTIVE
+    mode = JarvisMode.DEFAULT
+
+    
 
     while state != JarvisState.STOPPED:
         with sr.Microphone() as source:
@@ -281,18 +302,29 @@ def chat():
                         elif find_match(play_music, text):
                             response = playMusic(text)
                             responses.append(response)
+                            state = JarvisState.SLEEP
                         elif find_match(random_song, text):
-                            response = playMusic("iron man playlist")
+                            music = "Give me a random song in the rock, rap, pop, or alternative genre. Try to keep the songs different to what you usually pick, and remember my preferences. This response should only say the song name and nothing else, not even the artist."
+                            messages.append({"role": "user", "content": music})
+                            response = Create_Jarvis(messages)
+                            response = playMusic(response)
                             responses.append(response)
+                            state = JarvisState.SLEEP
                         elif find_match(generate_image, text):
                             response = generate_image_response(text)
                             if response:
                                 responses.append(response) 
                                 SpeakText("I've provided your image here")
-                        elif find_match(look_screen, text):
-                            response = capture_and_analyze(text)
-                            responses.append(response)
-                            SpeakText(response)
+                        elif "hardware mode" in text:
+                            mode = JarvisMode.HARDWARE
+                            #ai_response(text)
+                            SpeakText("Activating Hardware mode")
+                        elif "software mode" in text:
+                            mode = JarvisMode.SOFTWARE
+                            SpeakText("Activating software mode")
+                        elif "default mode" in text:
+                            mode = JarvisMode.DEFAULT
+                            SpeakText("Activating default mode sir")
                         elif find_match(wake_up, text):
                             if 'jarvis' in text:
                                 text = text.replace("jarvis", '')
@@ -322,14 +354,23 @@ def chat():
                             response = play_youtube(text)
                             responses.append(response)
                             SpeakText(response)
+                            state = JarvisState.SLEEP
                         elif find_match(timer_command, text):
                             response = "timer set for you sir"
                             responses.append(response)
                             def timerUI():
                                 timer(text)
                             threading.Thread(target=timerUI, daemon=True).start()
-                        else:
+                        elif "jarvis power off" in text:
                             ai_response(text)
+                            state = JarvisState.STOPPED
+                        else:
+                            if mode == JarvisMode.DEFAULT:
+                                ai_response(text)
+                            elif mode == JarvisMode.HARDWARE:
+                                vision_response(text)
+                            else:
+                                screen_respose(text)
 
                 except sr.UnknownValueError:
                     pass  # Ignore errors due to unrecognized speech

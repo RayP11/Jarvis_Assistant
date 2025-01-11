@@ -7,6 +7,9 @@ import requests
 import pyautogui
 import tempfile
 import base64
+import cv2
+import time
+
 
 
 load_dotenv()
@@ -163,4 +166,90 @@ def capture_and_analyze(text):
     # Delete the temporary file
     os.remove(temp_file.name)
     print(f"Deleted temporary file: {temp_file.name}")
+
+def resize_image(frame, width=100, height=150):
+    """
+    Resizes the image to the specified width and height.
+    """
+    resized_frame = cv2.resize(frame, (width, height))
+    return resized_frame
+
+def camera_response(text):
+    """
+    Opens the camera, takes a screenshot, and provides an AI response based on the image and user query.
+    """
+    # Initialize the camera
+    camera = cv2.VideoCapture(0)
+    if not camera.isOpened():
+        print("Error: Could not access the camera.")
+        return None
+
+    # Capture the image
+    ret, frame = camera.read()
+    camera.release()
+    if not ret:
+        print("Error: Failed to capture image.")
+        return None
+
+    # Resize the image to a smaller size to reduce the payload
+    frame = resize_image(frame)
+
+    # Save the image to a temporary file
+    temp_file_name = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_file:
+            temp_file_name = temp_file.name
+            # Write the resized image using OpenCV after the file is closed
+            cv2.imwrite(temp_file_name, frame)
+            print(f"Image saved to {temp_file_name}")
+            time.sleep(0.1)
+            cv2.destroyAllWindows()
+
+            # Encode the resized image
+            base64_image = encode_image(temp_file_name)
+    finally:
+        # Ensure the temporary file is deleted
+        if temp_file_name and os.path.exists(temp_file_name):
+            os.remove(temp_file_name)
+            print(f"Deleted temporary file: {temp_file_name}")
+
+    # Prepare API request
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {openai_api_key}"
+    }
+
+    payload = {
+            "model": "gpt-4o-mini",  # Adjust as necessary
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "You are Jarvis, I am the person in these images, don't worry about the person. " + text},
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{base64_image}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "max_tokens": 4000
+        }
+
+    # Send the request
+    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+
+    # Process the response
+    if response.status_code == 200:
+        response_data = response.json()
+        completion_text = response_data['choices'][0]['message']['content']
+        return completion_text
+    else:
+        print(f"Error: {response.status_code}, {response.text}")
+        return None
+
+
+    
 

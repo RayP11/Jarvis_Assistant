@@ -48,7 +48,7 @@ timer_command = [
 
 # Commands to play a random song
 random_song = [
-    "drop my needle", "drop the needle", "play something for me", "play me some music", "jarvis music", "music please"
+    "drop my needle", "drop the needle", "play something for me", "play me some music", "jarvis music", "music please", "give me some music", "play me something", "play music", "give me music", "play some tunes", "tunes please", "music please", "next song"
 ]
 
 # Commands to turn volume up
@@ -72,11 +72,6 @@ send_message = [
     "send me a reminder", "send me a message", "message me", "me a text", "send a text", "remind me to"
 ]
 
-#commands for jarvis to look at computer screen
-look_screen = [
-    "take a look", "analyze my screen", "what am i looking at", "examine my screen", "check this out", "what i'm looking at", "what i am looking at" 
-]
-
 # Commands to stop running JARVIS
 stop_commands = [
     "goodbye", "bye", "jarvis stop"
@@ -87,19 +82,16 @@ j_sleep = [
     "that's all", "that is all", "talk to you soon"
 ]
 
-# Commands to put JARVIS into sleep mode with a black screen
-j_night = [
-    'goodnight', 'night jarvis', 'talk to you in the morning', 'sleep mode'
-]
-
 #commands to prompt jarvis to set a wake up alarm
 wake_up = [
     "wake me up at", "set an alarm for"
 ]
 
+#commands to send a text message to Sophie
 send_soph = [
     "send a text to sophie at", "message sophie at", "message to sophie at", "text sophie at"
 ]
+
 
 def find_match(command_list, text):
     """
