@@ -2,6 +2,8 @@
 An AI voice assistant designed for desktop - created with python and HTML.
 Utilizing: OpenAI, SpotifyAPI, National Weather Service, Voice Recognition, and Elevenlabs
 
+![image](https://github.com/user-attachments/assets/8c23d1e8-822a-4afc-b84a-e5d3d5ff9abd)
+
 # Functions
 - Opening applications: Google, Microsoft Edge, Youtube, Netflix, and Spotify.
 - Playing music on Spotify
