@@ -107,7 +107,7 @@
             font-size: 18px;
         }
 
-        #dateDisplay, #timeDisplay, #weatherDisplay {
+        #dateDisplay, #timeDisplay {
             position: absolute;
             right: 20px;
             color: var(--time-color);
@@ -121,11 +121,6 @@
         #timeDisplay {
             top: 65px;
             font-size: 40px;
-        }
-
-        #weatherDisplay {
-            top: 120px;
-            font-size: 35px;
         }
 
         button {
@@ -172,7 +167,6 @@
     
     <div id="dateDisplay"></div>
     <div id="timeDisplay"></div>
-    <div id="weatherDisplay">Loading weather...</div>
 
     <script>
         let responses = []; // Initialize the responses array
@@ -191,22 +185,6 @@
 
             document.getElementById('dateDisplay').textContent = dateString;
             document.getElementById('timeDisplay').textContent = timeString;
-        }
-
-        function fetchWeather() {
-            fetch('/api/weather')
-                .then(response => response.json())
-                .then(data => {
-                    const weatherDisplay = document.getElementById('weatherDisplay');
-                    if (data && data.weather && data.main) {
-                        weatherDisplay.textContent = `${data.weather.emoji} ${data.weather.description}, 🌡️ ${data.main.temp}°F`;
-                    } else {
-                        weatherDisplay.textContent = "Weather data not available.";
-                    }
-                })
-                .catch(() => {
-                    document.getElementById('weatherDisplay').textContent = "Error fetching weather.";
-                });
         }
 
         function fetchResponse() {
@@ -255,8 +233,6 @@
         window.addEventListener('click', hideMenu);
         setInterval(updateTime, 1000);
         updateTime();
-        setInterval(fetchWeather, 60000);
-        fetchWeather();
         setInterval(fetchResponse, 500);
         fetchResponse(); // Show the response container by default
     </script>

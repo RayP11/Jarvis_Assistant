@@ -13,11 +13,11 @@ import face_recognition
 import cv2
 from flask import (Flask, jsonify, send_from_directory)
 import webbrowser
+from get_weather import (get_weather)
 from recognize_speech import (listen, r)
 from openaiAPI import (Create_Jarvis, messages, genImage, SpeakText, capture_and_analyze, camera_response)
-from get_weather import (weather)
 from messages import (sendText)
-from user_commands import (google_open, edge_open, netflix_open, today_weather, spotify_open,
+from user_commands import (google_open, edge_open, netflix_open, weather_forecast, spotify_open,
                            play_music, what_time, play_video, timer_command,
                            random_song, generate_image, j_sleep, volume_decrease, volume_increase,
                            send_message, wake_up, send_soph, find_match)
@@ -45,45 +45,6 @@ def serve_html():
     """Serve the HTML file for the main user interface."""
     return send_from_directory('', 'index.html')  # Serve the HTML file
 
-@app.route('/api/weather', methods=['GET'])
-def get_weather_data():
-    """
-    Fetches weather data for a specific location and returns it in JSON format,
-    including weather description, temperature, and a relevant emoji.
-    """
-    weather_info = weather("Salisbury")  # Fetch the weather data
-    # Example response parsing
-    temp_str = weather_info.split("currently ")[1].split(" degrees")[0]
-    description_str = weather_info.split("and it is ")[1].strip(".")
-
-    # Mapping weather descriptions to emojis
-    emoji_map = {
-        "Sunny": "☀️",
-        "Cloudy": "☁️",
-        "Light rain": "🌧️",
-        "Rain": "🌧️",
-        "Snow": "❄️",
-        "Thunderstorm": "⛈️",
-        "Clear": "☀️",
-        "Partly cloudy": "🌥️",
-    }
-
-    # Get emoji based on description
-    emoji = emoji_map.get(description_str, "🌈")  # Default to a rainbow if not found
-
-    # Create structured JSON response
-    response_data = {
-        "weather": {
-            "description": description_str,
-            "emoji": emoji
-        },
-        "main": {
-            "temp": temp_str
-        }
-    }
-
-    return jsonify(response_data)
-
 @app.route('/api/delete_image', methods=['POST'])
 def delete_image():
     """
@@ -107,27 +68,20 @@ class JarvisMode:
 #initialize mode
 mode = JarvisMode.DEFAULT
 
-# Initialize state, sleep timer, and face recognition timer
+# Initialize state, sleep timer
 state = JarvisState.ACTIVE
 sleep_timer = None
-face_recognition_timer = None
 
 def activate_sleep_mode():
     """
     Start timers for sleep mode and facial recognition. JARVIS will enter sleep mode after
     300 seconds of inactivity and activate facial recognition after 10 minutes.
     """
-    global state, sleep_timer, face_recognition_timer
+    global state, sleep_timer
     if sleep_timer:
         sleep_timer.cancel()  # Cancel any existing timer
     sleep_timer = threading.Timer(300.0, set_sleep_mode)  # Set sleep mode after 300 seconds of inactivity
     sleep_timer.start()
-    
-    # Start a timer for facial recognition to activate after 30 minutes (1800 seconds)
-    if face_recognition_timer:
-        face_recognition_timer.cancel()  # Cancel any existing face recognition timer
-    face_recognition_timer = threading.Timer(600.0, activate_face_recognition)  # Set for 10 minutes
-    face_recognition_timer.start()
 
 def set_sleep_mode():
     """
@@ -139,24 +93,13 @@ def set_sleep_mode():
 
 def reset_sleep_timer():
     """
-    Reset both the sleep and face recognition timers.
+    Reset sleep timer.
     """
-    global sleep_timer, face_recognition_timer
+    global sleep_timer
     if sleep_timer:
         sleep_timer.cancel()  # Cancel existing sleep timer
-    if face_recognition_timer:
-        face_recognition_timer.cancel()  # Cancel existing face recognition timer
     activate_sleep_mode()  # Start both timers again
 
-def activate_face_recognition():
-    """
-    Starts facial recognition if in sleep mode.
-    """
-    global state, faceId_run
-    if state == JarvisState.SLEEP and not faceId_run:
-        # Start facial recognition in a separate thread if JARVIS is still in sleep mode
-        threading.Thread(target=find_ray, daemon=True).start()
-        faceId_run = True
 
 def ai_response(text):
     """
@@ -204,67 +147,12 @@ def generate_image_response(text):
         "imageUrl": image_url
     }
 
-# Load known face image and get its encoding
-known_image = face_recognition.load_image_file("C:\\Users\\Raypo\\OneDrive\\Pictures\\Camera Roll\\my_face.jpg")
-known_face_encoding = face_recognition.face_encodings(known_image)[0]  # Get the encoding
-
-
-faceId_run = False
-
-def find_ray():
-    """
-    Facial recognition to identify the if the user is detected, and give a response if detected.
-    """
-    global findingRay, state, faceId_run  # Include state to modify it
-    findingRay = True  # Initialize findingRay
-
-    video_capture = cv2.VideoCapture(0)
-
-    while findingRay:
-        # Check if Jarvis is still in sleep mode
-        if state != JarvisState.SLEEP:
-            findingRay = False  # Stop searching for the face
-            break  # Exit the loop if JARVIS is activated
-
-        # Capture a single frame of video
-        ret, frame = video_capture.read()
-
-        if not ret:
-            print("Failed to capture image")
-            break
-
-        # Resize the frame for faster processing
-        small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
-
-        # Find all the faces and face encodings in the frame
-        face_locations = face_recognition.face_locations(small_frame)
-        face_encodings = face_recognition.face_encodings(small_frame, face_locations)
-
-        for face_encoding in face_encodings:
-            # See if the face is a match for the known face(s)
-            match = face_recognition.compare_faces([known_face_encoding], face_encoding)  # Use the encoding
-            if match[0]:  # If there is a match
-                # Face found
-                findingRay = False  # Stop searching for the face
-                faceId_run = False  # Ensure face_id is not run multiple times
-                # Release handle to the webcam
-                video_capture.release()
-                cv2.destroyAllWindows()
-                break  # Exit the loop after finding the face
-        if not findingRay:
-            ai_response("Ask me about something, any reminders, or how I'm doing, or anything you can help me with. Make it very brief.")  # Prompt ChatGPT response
-            time.sleep(0.5)
-            state = JarvisState.ACTIVE
-            reset_sleep_timer()  # Reset the sleep timer
-
-
-
 def chat():
     """
     Handles microphone input and all user commands for JARVIS.
     Processes recognized text to determine the appropriate command or response.
     """
-    global state, faceId_run, mode
+    global state, mode
     wake_word = 'jarvis'
     state = JarvisState.ACTIVE
     mode = JarvisMode.DEFAULT
@@ -291,10 +179,6 @@ def chat():
                             response = "Opening Google for you."
                             responses.append(response)
                             SpeakText(response)
-                        elif find_match(today_weather, text):
-                            response = weather("Salisbury")
-                            responses.append(response)
-                            SpeakText(response)
                         elif find_match(j_sleep, text):
                             reset_sleep_timer()
                             ai_response(text)
@@ -315,6 +199,19 @@ def chat():
                             if response:
                                 responses.append(response) 
                                 SpeakText("I've provided your image here")
+                        elif find_match(weather_forecast, text):
+                            text = "give a brief response only specifying what I ask. Make sure you don't abbreviate the degrees or unit" + text
+                            forecast = get_weather()
+                            has_forecast = False
+                            #Only feed weather info to OpenAI if there is no prior updated data
+                            for message in messages:
+                                if forecast in message:
+                                    has_forecast = True
+                                    break
+                            if has_forecast:
+                                ai_response(text)
+                            else:
+                                ai_response(text + forecast)
                         elif "hardware mode" in text:
                             mode = JarvisMode.HARDWARE
                             #ai_response(text)
@@ -379,7 +276,7 @@ def chat():
 
 def main():
     """
-    Main function to start the user interface, facial recognition, and chat functions.
+    Main function to start the user interfaceand chat functions.
     """
     # Start the Flask app in a separate thread
     threading.Thread(target=app.run, kwargs={'host': '0.0.0.0', 'port': 8000, 'debug': False}, daemon=True).start()

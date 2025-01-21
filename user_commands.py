@@ -16,9 +16,8 @@ netflix_open = [
 ]
 
 # Commands to get the weather for today
-today_weather = [
-    "weather today", "today's forecast", "todays forecast", "forecast today", 
-    "today's weather", "todays weather", "weather is today", "what is the weather", "what's the weather"
+weather_forecast = [
+    "weather", "forecast"
 ]
 
 # Commands to open Spotify

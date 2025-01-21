@@ -4,11 +4,12 @@ import datetime
 import pywhatkit
 import pyautogui
 import re
+from messages import sendGfText
 from openaiAPI import Create_Jarvis, messages, SpeakText 
 from Spotify_API import play_playlist, play_song
 from flask import Flask, jsonify, send_from_directory
 import threading
-from get_weather import weather
+
 
 app = Flask(__name__)
 responses = []
@@ -139,7 +140,7 @@ def schedule_wake_up(hour, minute):
         
         # Check if the current hour and minute match the scheduled time
         if current_time.hour == hour and current_time.minute == minute:
-            morningResponse = (f"Good morning! It's {hour:02d}:{minute:02d}! " + weather("Salisbury"))
+            morningResponse = (f"Good morning! It's {hour:02d}:{minute:02d}! ")
             alarm = False
             SpeakText(morningResponse)  # Speak the wake-up message
             playMusic("Lovely Day")
@@ -171,6 +172,51 @@ def handle_schedule_command(text):
         if 'p.m.' in text and hour > 12:
             hour = hour-12
         response = f"Scheduled wake-up at {hour:02d}:{minute:02d}. "
+        responses.append(response)
+        SpeakText(response)
+    else:
+        print("No match found.")  # Debugging if no match is found
+
+def scheduleText(hour, minute):
+    alarm = True
+    print(f"Sending message at {hour:02d}:{minute:02d}.")
+    
+    while alarm == True:
+        current_time = datetime.datetime.now()
+        print(f"Current time: {current_time.hour:02d}:{current_time.minute:02d}")  # Debugging current time
+        
+        # Check if the current hour and minute match the scheduled time
+        if current_time.hour == hour and current_time.minute == minute:
+            sendGfText()
+            #messages.append({"role": "user", "content": "Alert me that you just sent my message to Sophie"}) 
+            SpeakText("Message sent for you")
+            alarm = False
+        
+        time.sleep(5)  # Check every 5 seconds
+
+def handle_schedule_text(text):
+    print(f"Received command: {text}")  # Debugging input
+
+    match = re.search(r'(?:send a text to sophie at|message sophie at|message to sophie at|text sophie at)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?', text, re.IGNORECASE)
+    
+    if match:
+        hour = int(match.group(1))
+        minute = int(match.group(2)) if match.group(2) else 0
+        
+
+        # Convert to 24-hour format
+        if 'p.m.' in text and hour < 12:
+            hour+=12
+        elif 'a.m.' in text and hour == 12:
+            hour = 0
+
+        print(f"Parsed time: {hour:02d}:{minute:02d}")  # Debugging parsed time
+
+        # Start the scheduling thread
+        threading.Thread(target=scheduleText, args=(hour, minute), daemon=True).start()
+        if 'p.m.' in text and hour > 12:
+            hour = hour-12
+        response = f"Scheduled message at {hour:02d}:{minute:02d}. "
         responses.append(response)
         SpeakText(response)
     else:
